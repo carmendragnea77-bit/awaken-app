@@ -1,0 +1,8 @@
+newspaper3k
+lxml_html_clean
+requests
+google-generativeai
+openai
+anthropic
+colorama
+beautifulsoup4
