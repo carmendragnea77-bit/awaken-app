@@ -23,11 +23,10 @@ if st.button("Verifică"):
         
         if mod == "Gratuit (Bază de Date Liberă)":
             try:
-                # Extragem primele 8 cuvinte pentru a nu bloca motorul de căutare
+                # Luăm primele 8 cuvinte
                 cuvinte = text_verificat.split()
                 termen_cautare = " ".join(cuvinte[:8])
                 
-                # Folosim API-ul OFICIAL și liber (MediaWiki), care NU blochează serverele de cloud
                 url = "https://ro.wikipedia.org/w/api.php"
                 params = {
                     "action": "query",
@@ -37,21 +36,32 @@ if st.button("Verifică"):
                     "format": "json"
                 }
                 
-                raspuns = requests.get(url, params=params).json()
-                rezultate = raspuns.get("query", {}).get("search", [])
+                # REZOLVAREA: Cartea de vizită obligatorie pentru Wikipedia
+                headers = {
+                    "User-Agent": "TheAwakenMultisystem/1.0 (admin@awaken.ro)"
+                }
                 
-                if rezultate:
-                    st.success(f"Informații găsite în surse libere pentru: '{termen_cautare}...'")
-                    for r in rezultate[:3]:
-                        # Curățăm textul extras pentru a fi ușor de citit
-                        snippet = r['snippet'].replace('<span class="searchmatch">', '**').replace('</span>', '**')
-                        st.markdown(f"### [{r['title']}](https://ro.wikipedia.org/wiki/{r['title'].replace(' ', '_')})")
-                        st.write(f"...{snippet}...")
-                        st.write("---")
+                raspuns = requests.get(url, params=params, headers=headers)
+                
+                # Verificăm dacă Wikipedia ne-a răspuns cu succes (Cod 200)
+                if raspuns.status_code == 200:
+                    date = raspuns.json()
+                    rezultate = date.get("query", {}).get("search", [])
+                    
+                    if rezultate:
+                        st.success(f"Informații găsite pentru: '{termen_cautare}...'")
+                        for r in rezultate[:3]:
+                            snippet = r['snippet'].replace('<span class="searchmatch">', '**').replace('</span>', '**')
+                            st.markdown(f"### [{r['title']}](https://ro.wikipedia.org/wiki/{r['title'].replace(' ', '_')})")
+                            st.write(f"...{snippet}...")
+                            st.write("---")
+                    else:
+                        st.warning("Nu am găsit informații în sursele libere pentru textul introdus.")
                 else:
-                    st.warning("Nu am găsit informații în baza de date liberă pentru acest fragment. Încearcă să extragi doar subiectul principal sau folosește Premium.")
+                    st.error(f"Eroare de conexiune la server. Cod: {raspuns.status_code}")
+                    
             except Exception as e:
-                st.error(f"Eroare tehnică la conexiunea cu baza de date: {e}")
+                st.error(f"Eroare tehnică: {e}")
                 
         elif mod == "Premium (OpenAI API)":
             if not api_key:
