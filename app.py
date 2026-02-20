@@ -1,13 +1,13 @@
 import streamlit as st
 from openai import OpenAI
-from googlesearch import search
+import requests
 
 st.set_page_config(page_title="The Awaken", layout="wide")
 st.title("The Awaken - Multisystem")
 st.markdown("Arhitectura globală de verificare a realității.")
 
 st.sidebar.header("Setări")
-mod = st.sidebar.radio("Alege varianta:", ["Gratuit (Google Search)", "Premium (OpenAI API)"])
+mod = st.sidebar.radio("Alege varianta:", ["Gratuit (Bază de Date Liberă)", "Premium (OpenAI API)"])
 
 api_key = ""
 if mod == "Premium (OpenAI API)":
@@ -21,25 +21,37 @@ if st.button("Verifică"):
     else:
         st.write("Se analizează...")
         
-        if mod == "Gratuit (Google Search)":
+        if mod == "Gratuit (Bază de Date Liberă)":
             try:
-                # Extragem primele 8 cuvinte pentru o căutare logică pe Google
+                # Extragem primele 8 cuvinte pentru a nu bloca motorul de căutare
                 cuvinte = text_verificat.split()
                 termen_cautare = " ".join(cuvinte[:8])
                 
-                # Căutăm rezultatele direct
-                rezultate = list(search(termen_cautare, num_results=3, advanced=True, lang="ro"))
+                # Folosim API-ul OFICIAL și liber (MediaWiki), care NU blochează serverele de cloud
+                url = "https://ro.wikipedia.org/w/api.php"
+                params = {
+                    "action": "query",
+                    "list": "search",
+                    "srsearch": termen_cautare,
+                    "utf8": "1",
+                    "format": "json"
+                }
+                
+                raspuns = requests.get(url, params=params).json()
+                rezultate = raspuns.get("query", {}).get("search", [])
                 
                 if rezultate:
-                    st.success(f"Am căutat pe Google: '{termen_cautare}...'")
-                    for r in rezultate:
-                        st.markdown(f"**[{r.title}]({r.url})**")
-                        st.write(r.description)
+                    st.success(f"Informații găsite în surse libere pentru: '{termen_cautare}...'")
+                    for r in rezultate[:3]:
+                        # Curățăm textul extras pentru a fi ușor de citit
+                        snippet = r['snippet'].replace('<span class="searchmatch">', '**').replace('</span>', '**')
+                        st.markdown(f"### [{r['title']}](https://ro.wikipedia.org/wiki/{r['title'].replace(' ', '_')})")
+                        st.write(f"...{snippet}...")
                         st.write("---")
                 else:
-                    st.warning("Nu am găsit rezultate. Încearcă o altă formulare.")
+                    st.warning("Nu am găsit informații în baza de date liberă pentru acest fragment. Încearcă să extragi doar subiectul principal sau folosește Premium.")
             except Exception as e:
-                st.error(f"Eroare la conexiunea cu Google: {e}")
+                st.error(f"Eroare tehnică la conexiunea cu baza de date: {e}")
                 
         elif mod == "Premium (OpenAI API)":
             if not api_key:
