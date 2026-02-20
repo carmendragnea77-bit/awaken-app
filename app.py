@@ -1,14 +1,13 @@
 import streamlit as st
 from openai import OpenAI
-import requests
-from bs4 import BeautifulSoup
-import urllib.parse
+from googlesearch import search
 
 st.set_page_config(page_title="The Awaken", layout="wide")
-st.title("The Awaken: Verificator de Realitate")
+st.title("The Awaken - Multisystem")
+st.markdown("Arhitectura globală de verificare a realității.")
 
 st.sidebar.header("Setări")
-mod = st.sidebar.radio("Alege varianta:", ["Gratuit (Căutare Web Liberă)", "Premium (OpenAI API)"])
+mod = st.sidebar.radio("Alege varianta:", ["Gratuit (Google Search)", "Premium (OpenAI API)"])
 
 api_key = ""
 if mod == "Premium (OpenAI API)":
@@ -22,43 +21,25 @@ if st.button("Verifică"):
     else:
         st.write("Se analizează...")
         
-        if mod == "Gratuit (Căutare Web Liberă)":
+        if mod == "Gratuit (Google Search)":
             try:
-                # Extragem esența (primele 6 cuvinte) și le codăm pentru URL
+                # Extragem primele 8 cuvinte pentru o căutare logică pe Google
                 cuvinte = text_verificat.split()
-                termen = " ".join(cuvinte[:6])
-                termen_url = urllib.parse.quote_plus(termen)
+                termen_cautare = " ".join(cuvinte[:8])
                 
-                # Căutăm pe un motor care blochează mai greu cererile simple (DuckDuckGo formatat ca html)
-                url = f"https://html.duckduckgo.com/html/?q={termen_url}"
+                # Căutăm rezultatele direct
+                rezultate = list(search(termen_cautare, num_results=3, advanced=True, lang="ro"))
                 
-                # Mimăm un browser uman (trecem de bariera de bază)
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                }
-                
-                raspuns = requests.get(url, headers=headers)
-                
-                if raspuns.status_code == 200:
-                    supa = BeautifulSoup(raspuns.text, 'html.parser')
-                    rezultate_gasite = supa.find_all('a', class_='result__url', limit=3)
-                    fragmente = supa.find_all('a', class_='result__snippet', limit=3)
-                    
-                    if rezultate_gasite and fragmente:
-                        st.success(f"Căutare după: '{termen}...'")
-                        for i in range(len(rezultate_gasite)):
-                            link = rezultate_gasite[i].get('href')
-                            text_snippet = fragmente[i].text.strip()
-                            st.markdown(f"**[{link}]({link})**")
-                            st.write(text_snippet)
-                            st.write("---")
-                    else:
-                        st.warning("Motorul de căutare a returnat o pagină fără rezultate clare. Încearcă un text diferit.")
+                if rezultate:
+                    st.success(f"Am căutat pe Google: '{termen_cautare}...'")
+                    for r in rezultate:
+                        st.markdown(f"**[{r.title}]({r.url})**")
+                        st.write(r.description)
+                        st.write("---")
                 else:
-                    st.error(f"Eroare de conexiune la serverul de căutare (Cod: {raspuns.status_code}).")
-                    
+                    st.warning("Nu am găsit rezultate. Încearcă o altă formulare.")
             except Exception as e:
-                st.error(f"Eroare tehnică la căutarea gratuită: {e}")
+                st.error(f"Eroare la conexiunea cu Google: {e}")
                 
         elif mod == "Premium (OpenAI API)":
             if not api_key:
