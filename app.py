@@ -19,15 +19,26 @@ if st.button("Verifică"):
         st.error("Scrie ceva în căsuță mai întâi!")
     else:
         st.write("Se analizează...")
-        if mod == "Gratuit (Wikipedia)":
-            wiki = wikipediaapi.Wikipedia('AwakenApp/1.0', 'ro')
-            cuvinte = text_verificat.split()
-            rezultat = wiki.page(cuvinte[0] if cuvinte else text_verificat)
-            if rezultat.exists():
-                st.success("Am găsit ceva pe Wikipedia!")
-                st.write(rezultat.summary[:1000] + "...")
-            else:
-                st.warning("Nu am găsit date pe Wikipedia. Folosește varianta Premium.")
+       if mod == "Gratuit (Wikipedia)":
+            from duckduckgo_search import DDGS
+            
+            # Luăm primele 100 de caractere din text pentru a face o căutare relevantă pe web
+            termen_cautare = text_verificat[:100]
+            
+            try:
+                with DDGS() as ddgs:
+                    rezultate = list(ddgs.text(termen_cautare, max_results=3))
+                    
+                if rezultate:
+                    st.success("Am găsit următoarele informații pe web:")
+                    for r in rezultate:
+                        st.markdown(f"**[{r['title']}]({r['href']})**")
+                        st.write(r['body'])
+                        st.write("---")
+                else:
+                    st.warning("Nu am găsit rezultate relevante gratuite. Încearcă să simplifici textul sau folosește Premium.")
+            except Exception as e:
+                st.error(f"Eroare la căutarea gratuită: {e}")
                 
         elif mod == "Premium (OpenAI API)":
             if not api_key:
@@ -45,4 +56,5 @@ if st.button("Verifică"):
                     st.success("Analiză Premium Gata!")
                     st.write(raspuns.choices[0].message.content)
                 except Exception as e:
+
                     st.error(f"Eroare la cheia API: {e}")
