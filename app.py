@@ -6,7 +6,7 @@ st.set_page_config(page_title="The Awaken", layout="wide")
 st.title("The Awaken: Verificator de Realitate")
 
 st.sidebar.header("Setări")
-mod = st.sidebar.radio("Alege varianta:", ["Gratuit (AI Liber)", "Premium (OpenAI API)"])
+mod = st.sidebar.radio("Alege varianta:", ["Gratuit (Căutare Web Inteligentă)", "Premium (OpenAI API)"])
 
 api_key = ""
 if mod == "Premium (OpenAI API)":
@@ -20,20 +20,25 @@ if st.button("Verifică"):
     else:
         st.write("Se analizează...")
         
-        if mod == "Gratuit (AI Liber)":
+        if mod == "Gratuit (Căutare Web Inteligentă)":
             try:
-                # Folosim motorul AI gratuit din DuckDuckGo pentru a analiza tot textul
-                prompt = f"Acționează ca un expert în fact-checking. Verifică rapid dacă următoarea afirmație este adevărată, falsă sau o manipulare, aducând argumente scurte. Text: {text_verificat}"
+                # Extragem inteligent primele 6 cuvinte pentru a forma o căutare relevantă, nu o frază blocantă
+                cuvinte = text_verificat.split()
+                termen_cautare = " ".join(cuvinte[:6])
                 
-                rezultat_ai = DDGS().chat(prompt)
-                
-                if rezultat_ai:
-                    st.success("Analiză Gratuită Finalizată cu Succes!")
-                    st.write(rezultat_ai)
+                with DDGS() as ddgs:
+                    rezultate = list(ddgs.text(termen_cautare, max_results=3))
+                    
+                if rezultate:
+                    st.success(f"Am căutat pe web subiectul: '{termen_cautare}...'")
+                    for r in rezultate:
+                        st.markdown(f"**[{r['title']}]({r['href']})**")
+                        st.write(r['body'])
+                        st.write("---")
                 else:
-                    st.warning("Serverul gratuit este aglomerat momentan. Mai apasă o dată butonul Verifică.")
+                    st.warning("Nu am găsit rezultate clare. Încearcă să pui un titlu mai scurt sau folosește Premium.")
             except Exception as e:
-                st.error(f"Eroare la AI-ul gratuit (posibil prea multe accesări globale): {e}")
+                st.error(f"Eroare la căutarea gratuită: {e}")
                 
         elif mod == "Premium (OpenAI API)":
             if not api_key:
